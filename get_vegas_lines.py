@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Mar 10 11:49:30 2019
 
@@ -104,7 +102,6 @@ def write_record_csv(file_name, data):
             file.write('\n')
 
 
-
 def get_list_dates_in_range(start, end):
     start_date = datetime.datetime.strptime(start, '%Y-%m-%d').date()
     end_date = datetime.datetime.strptime(end, '%Y-%m-%d').date()
@@ -116,19 +113,6 @@ def get_list_dates_in_range(start, end):
     return list_of_days
 
 
-
-
-
-
-
-
-#day = '03-06-19'
-#lines = get_lines(day)
-#files = folder_name+'/lines_'+day
-#write_record_csv(file_name= files,data= lines)
-
-
-
 def main():
     # keep files organized- if 'daily_lines' does not exist, create it
     import os
@@ -136,7 +120,10 @@ def main():
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
-    days = get_list_dates_in_range('2019-03-07','2019-03-10')
+
+    start_range = '2019-02-28'
+    end_range = '2019-03-05'
+    days = get_list_dates_in_range(start_range,end_range)
     for day in tqdm(days):
         day = day.strftime('%m-%d-%Y')
         lines = get_lines(day)
