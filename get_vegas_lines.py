@@ -13,7 +13,7 @@ def get_lines(day):
     day = day
     url = "http://www.vegasinsider.com/mlb/matchups/matchups.cfm/date/" + day
     page = requests.get(url)
-    page.text
+    # page.text
     soup = BeautifulSoup(page.text, 'html.parser')
 
     ls = []
@@ -95,8 +95,14 @@ def write_record_csv(file_name, data):
             file.write(record)
             file.write('\n')
 
-day = '09-17-18'
+# keep files organized
+import os
+folder_name = 'daily_lines'
+if not os.path.exists(folder_name):
+    os.makedirs(folder_name)
+os.chdir(folder_name)
+
+day = '03-09-19'
 lines = get_lines(day)
 files = 'lines_'+day
 write_record_csv(file_name= files,data= lines)
-
