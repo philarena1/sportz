@@ -8,6 +8,10 @@ Created on Sun Mar 10 11:49:30 2019
 import requests
 from bs4 import BeautifulSoup
 import csv
+from datetime import date, timedelta
+import datetime
+from time import sleep
+from tqdm import tqdm
 
 def get_lines(day):
     day = day
@@ -59,6 +63,7 @@ def get_lines(day):
             O_U_3 = game_info[i][10]
             ATS = game_info[i][11]
 
+            team = ''.join([i for i in team if not i.isdigit()])
             game_day_info['team'] = team.strip()
             game_day_info['pitcher'] = pitcher.strip()
             game_day_info['win_loss'] = win_loss.strip()
@@ -79,6 +84,9 @@ def get_lines(day):
 
 def write_record_csv(file_name, data):
     with open(file_name+'.csv','w') as file:
+        # headers
+        file.write('team,pitcher,win_loss,streak,ML,O_U,ML_2,O_U_2,run,money,O_U_3,ATS')
+        file.write('\n')
         for row in data:
             record = str(data[row]['team'] + "," + \
                          data[row]['pitcher']  + "," + \
@@ -95,14 +103,47 @@ def write_record_csv(file_name, data):
             file.write(record)
             file.write('\n')
 
-# keep files organized
-import os
-folder_name = 'daily_lines'
-if not os.path.exists(folder_name):
-    os.makedirs(folder_name)
-os.chdir(folder_name)
 
-day = '03-09-19'
-lines = get_lines(day)
-files = 'lines_'+day
-write_record_csv(file_name= files,data= lines)
+
+def get_list_dates_in_range(start, end):
+    start_date = datetime.datetime.strptime(start, '%Y-%m-%d').date()
+    end_date = datetime.datetime.strptime(end, '%Y-%m-%d').date()
+
+    delta = end_date - start_date
+    list_of_days = []
+    for i in range(delta.days + 1):
+        list_of_days.append(start_date + timedelta(i))
+    return list_of_days
+
+
+
+
+
+
+
+
+#day = '03-06-19'
+#lines = get_lines(day)
+#files = folder_name+'/lines_'+day
+#write_record_csv(file_name= files,data= lines)
+
+
+
+def main():
+    # keep files organized- if 'daily_lines' does not exist, create it
+    import os
+    folder_name = 'daily_lines'
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    days = get_list_dates_in_range('2019-03-07','2019-03-10')
+    for day in tqdm(days):
+        day = day.strftime('%m-%d-%Y')
+        lines = get_lines(day)
+        files = folder_name + '/lines_' + day
+        write_record_csv(file_name=files, data=lines)
+        sleep(5)
+
+
+if __name__ == main():
+    main()
