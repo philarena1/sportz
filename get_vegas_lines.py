@@ -7,6 +7,7 @@ Created on Sun Mar 10 11:49:30 2019
 """
 import requests
 from bs4 import BeautifulSoup
+import csv
 
 def get_lines(day):
     day = day
@@ -76,4 +77,26 @@ def get_lines(day):
         i = i + 1
     return team_info
 
-t = get_lines('09-17-18')
+def write_record_csv(file_name, data):
+    with open(file_name+'.csv','w') as file:
+        for row in data:
+            record = str(data[row]['team'] + "," + \
+                         data[row]['pitcher']  + "," + \
+                         data[row]['win_loss'] + "," + \
+                         data[row]['streak'] + "," + \
+                         data[row]['ML'] + "," + \
+                         data[row]['O_U'] + "," + \
+                         data[row]['ML_2'] + "," + \
+                         data[row]['O_U_2'] + "," + \
+                         data[row]['run'] + "," + \
+                         data[row]['money'] + "," + \
+                         data[row]['O_U_3'] + "," + \
+                         data[row]['ATS'])
+            file.write(record)
+            file.write('\n')
+
+day = '09-17-18'
+lines = get_lines(day)
+files = 'lines_'+day
+write_record_csv(file_name= files,data= lines)
+
