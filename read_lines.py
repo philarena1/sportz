@@ -2,6 +2,7 @@ import glob
 import pandas as pd
 import os
 from datetime import datetime
+import re
 
 # get all csv files in folders
 path = r'venv/daily_lines'                     # use your path
@@ -14,10 +15,6 @@ all_lines_df = pd.concat(df_from_each_file, ignore_index=True,sort=False)
 def process_data(all_lines_df):
     # get date from file name
     all_lines_df['day'] = all_lines_df.file_name.str.split("_").str[2]
-
-    # did they win
-
-    all_lines_df['win'] = all_lines_df.team.str.contains('«',regex=True)
 
     # get team abbreviation
     def getTeamName(s):
@@ -112,8 +109,25 @@ def process_data(all_lines_df):
         return ''
 
     def get_num(s):
-        streak_num = re.search(r'\d+', s).group()
+        try:
+            streak_num = re.search(r'\d+', s).group()
+        except:
+            streak_num = 0
         return streak_num
+
+    def winner(s):
+        if s == True:
+            game = 'winner'
+        else:
+            game = 'loser'
+        return game
+
+    def to_num(s):
+        if s.isdigit():
+            run = int(s)
+        else:
+            run = 0
+        return run
 
     all_lines_df['team_name'] = all_lines_df.team.apply(getTeamName)
     all_lines_df['pitcher_arm'] = all_lines_df.pitcher.apply(getPitcher)
@@ -124,7 +138,75 @@ def process_data(all_lines_df):
     all_lines_df['streak_type'] = all_lines_df.streak.apply(getStreakType)
     all_lines_df['streak_num'] = all_lines_df.streak.apply(get_num)
 
+    all_lines_df['line_change_perc'] = (all_lines_df['ML_2'] - all_lines_df['ML'] )/ all_lines_df['ML']
+
+    all_lines_df['run'] = all_lines_df.run.apply(to_num)
+    all_lines_df['money'] = all_lines_df.money.apply(to_num)
+    all_lines_df['O_U_3'] = all_lines_df.O_U_3.apply(to_num)
+
+    # did they win
+    all_lines_df['win'] = all_lines_df.team.str.contains('«',regex=True)
+    all_lines_df['win'] = all_lines_df.win.apply(winner)
+
+
     return all_lines_df
 
 
+def format_for_model(test_df):
+    # dummy variable for teams
+    team_dummy = pd.get_dummies(test_df.team_name,prefix=['team_name'], drop_first=True).iloc[:, 1:]
+    df = pd.concat([test_df, team_dummy], axis=1)
+    df = df.drop('team_name', 1)
+
+    # dummy for pitcher_arm
+    pitcher_arm_dummy = pd.get_dummies(test_df.pitcher_arm,prefix=['pitcher_arm'], drop_first=True).iloc[:, 1:]
+    df = pd.concat([df, pitcher_arm_dummy], axis=1)
+    df = df.drop('pitcher_arm', 1)
+
+    # dummy for streak
+    win_streak_dummy = pd.get_dummies(test_df.streak_type,prefix=['streak_type'], drop_first=True).iloc[:, 1:]
+    df = pd.concat([df, win_streak_dummy], axis=1)
+    df = df.drop('streak_type', 1)
+
+    # dummy for predictor- winning
+    win_dummy = pd.get_dummies(test_df.win, drop_first=True)
+    df = pd.concat([df, win_dummy], axis=1)
+    df = df.drop('win', 1)
+
+    # delete unnecessary
+    columns = ['team','pitcher','win_loss','streak','ATS','file_name','day','day_of_week']
+    df.drop(columns, inplace=True, axis=1)
+
+    df = df.fillna(0)
+    return df
+
+
 test_df = process_data(all_lines_df)
+
+model_df = format_for_model(test_df)
+
+
+# normalize columns
+
+cols_to_norm = ['ML','O_U','ML_2','O_U_2','run','money','O_U_3']
+model_df[cols_to_norm] = model_df[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+
+
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+
+# separate x and y
+X = model_df.drop('winner',1)
+y = model_df['winner']
+y = y.astype('int')
+
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.30,random_state = 42)
+
+logreg = LogisticRegression()
+logreg.fit(X_train,y_train)
+score = logreg.score(X_train, y_train)
+score2 = logreg.score(X_test,y_test)
+
+print('Training set accurate %s' % (score))
+print('test set accurate %s' % (score2))
