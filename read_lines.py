@@ -192,7 +192,7 @@ cols_to_norm = ['ML','O_U','ML_2','O_U_2','run','money','O_U_3']
 model_df[cols_to_norm] = model_df[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
 
-
+#### Logistic regression
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 
@@ -201,7 +201,7 @@ X = model_df.drop('winner',1)
 y = model_df['winner']
 y = y.astype('int')
 
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.30,random_state = 42)
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.09,random_state = 42)
 
 logreg = LogisticRegression()
 logreg.fit(X_train,y_train)
@@ -210,3 +210,47 @@ score2 = logreg.score(X_test,y_test)
 
 print('Training set accurate %s' % (score))
 print('test set accurate %s' % (score2))
+
+
+
+#######  neural net
+# Feature Scaling
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+
+# Part 2 - Now let's make the ANN!
+
+# Importing the Keras libraries and packages
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+
+# Initialising the ANN
+classifier = Sequential()
+
+# Adding the input layer and the first hidden layer
+classifier.add(Dense(units = 6, kernel_initializer = 'uniform', activation = 'relu', input_dim = 40))
+
+# Adding the second hidden layer
+classifier.add(Dense(units = 6, kernel_initializer = 'uniform', activation = 'relu'))
+
+# Adding the output layer
+classifier.add(Dense(units = 1, kernel_initializer = 'uniform', activation = 'sigmoid'))
+
+# Compiling the ANN
+classifier.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+
+# Fitting the ANN to the Training set
+classifier.fit(X_train, y_train, batch_size = 32, epochs = 1000)
+
+# Part 3 - Making predictions and evaluating the model
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+y_pred = (y_pred > 0.45) # choose %, or maybe compare to actual implied odd
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test, y_pred)
