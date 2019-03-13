@@ -178,6 +178,9 @@ def format_for_model(test_df):
     df.drop(columns, inplace=True, axis=1)
 
     df = df.fillna(0)
+    cols_to_norm = ['ML', 'O_U', 'ML_2', 'O_U_2', 'run', 'money', 'O_U_3']
+    df[cols_to_norm] = df[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+
     return df
 
 
@@ -188,8 +191,8 @@ model_df = format_for_model(test_df)
 
 # normalize columns
 
-cols_to_norm = ['ML','O_U','ML_2','O_U_2','run','money','O_U_3']
-model_df[cols_to_norm] = model_df[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+#cols_to_norm = ['ML','O_U','ML_2','O_U_2','run','money','O_U_3']
+#model_df[cols_to_norm] = model_df[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
 
 #### Logistic regression
@@ -231,10 +234,14 @@ from keras.layers import Dense
 classifier = Sequential()
 
 # Adding the input layer and the first hidden layer
-classifier.add(Dense(units = 6, kernel_initializer = 'uniform', activation = 'relu', input_dim = 40))
+classifier.add(Dense(units = 45, kernel_initializer = 'uniform', activation = 'relu', input_dim = 40))
 
 # Adding the second hidden layer
-classifier.add(Dense(units = 6, kernel_initializer = 'uniform', activation = 'relu'))
+classifier.add(Dense(units = 45, kernel_initializer = 'uniform', activation = 'relu'))
+
+# Adding the second hidden layer
+classifier.add(Dense(units = 45, kernel_initializer = 'uniform', activation = 'relu'))
+
 
 # Adding the output layer
 classifier.add(Dense(units = 1, kernel_initializer = 'uniform', activation = 'sigmoid'))
@@ -243,7 +250,7 @@ classifier.add(Dense(units = 1, kernel_initializer = 'uniform', activation = 'si
 classifier.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
 
 # Fitting the ANN to the Training set
-classifier.fit(X_train, y_train, batch_size = 32, epochs = 1000)
+classifier.fit(X_train, y_train, batch_size = 32, epochs = 1500)
 
 # Part 3 - Making predictions and evaluating the model
 
@@ -254,3 +261,42 @@ y_pred = (y_pred > 0.45) # choose %, or maybe compare to actual implied odd
 # Making the Confusion Matrix
 from sklearn.metrics import confusion_matrix
 cm = confusion_matrix(y_test, y_pred)
+
+
+
+# run entire original df through model
+
+X_df = sc.fit_transform(X)
+y_df = classifier.predict(X_df)
+y_df = (y_df > 0.50)
+cm = confusion_matrix(y, y_df)
+
+df_pred = pd.DataFrame(y_df, columns=['prediction'])
+model_df_pred = model_df.join(df_pred)
+
+test_df_pred = test_df.join(df_pred)
+
+
+
+## predict
+f = 'venv/lines_03-12-2019.csv'
+df_predict = pd.read_csv(f, index_col=False )
+
+num_predict = len(df_predict)
+df_with_total = test_df.append(df_predict) # need all values for dummy
+
+process_predict = process_data(df_with_total)
+predict_df = format_for_model(process_predict)
+
+predict_df = predict_df.tail(num_predict)
+
+X = predict_df.drop('winner',1)
+y = model_df['winner']
+y = y.astype('int')
+
+X_df = sc.fit_transform(X)
+y_df = classifier.predict(X_df)
+
+predict_output = pd.DataFrame(y_df, columns=['win_likelihood'])
+
+df_predict_with_predictions = df_predict.join(predict_output)
