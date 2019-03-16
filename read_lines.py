@@ -204,7 +204,7 @@ X = model_df.drop('winner',1)
 y = model_df['winner']
 y = y.astype('int')
 
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.09,random_state = 42)
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.43,random_state = 42) # change test size
 
 logreg = LogisticRegression()
 logreg.fit(X_train,y_train)
@@ -300,3 +300,4 @@ y_df = classifier.predict(X_df)
 predict_output = pd.DataFrame(y_df, columns=['win_likelihood'])
 
 df_predict_with_predictions = df_predict.join(predict_output)
+
